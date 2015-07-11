@@ -16,6 +16,7 @@ const
 
 // TODO: unify those JSONs!!!! (seqnum vs orig_addr_seqnum usw)
 
+
 type Json_template_sent_rreq struct {
     Log_type  string          `json: "log_type"`
     Log_data  struct {
@@ -64,6 +65,17 @@ func test_route_creation_0_to_3() {
     /* Discover route...  */
     expected_json := fmt.Sprintf(json_template_sent_rreq, beginning.Ip, end.Ip, 1, 0)
     beginning.Channels.Expect_JSON(expected_json)
+
+    xoxo := json.Marshal(&Json_template_received_rreq{
+        Log_type: "received_rreq",
+        Log_data: struct {
+            Last_hop:    beginning.Ip,
+            Orig_addr:   beginning.Ip,
+            Targ_addr:   end.Ip,
+            Orig_seqnum: 1,
+            Metric:      0}})
+    //fmt.Println(string(xoxo))
+    riot_line[1].Channels.Expect_JSON(string(xoxo))
 
     expected_json = fmt.Sprintf(json_template_received_rreq, beginning.Ip, beginning.Ip, end.Ip, 1, 0)
     riot_line[1].Channels.Expect_JSON(expected_json)
