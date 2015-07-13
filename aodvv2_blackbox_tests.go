@@ -164,21 +164,22 @@ func test_route_creation_0_to_3() {
     }))
 
     /* check node 2 */
-    /* TODO FIXME targ_addr_seqnum is *sometimes* 2 because apparently
+    /* Targ_seqnum is *sometimes* 2 because apparently
      * weird RREQs are sent out before the experiment, screwing up the targaddr seqnum
-     * and I haven't figured out why yet. So some of these tests may fail, cascading
-     * into a whole failure of tests. Yay! :))) */
+     * and I haven't figured out why yet. So until that mystery is solved
+     * Targ_seqnum is set to aodvv2_test_management.WILDCARD */
+    targ_seqnum := "\""+ aodvv2_test_management.WILDCARD+ "\""
     riot_line[2].Channels.Expect_JSON(make_JSON_str(template_received_rrep, map[string]string{
         "Last_hop": end.Ip,
         "Orig_addr": beginning.Ip,
         "Orig_seqnum": "1",
         "Targ_addr": end.Ip,
-        "Targ_seqnum": "2",
+        "Targ_seqnum": targ_seqnum,
     }))
     riot_line[2].Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
         "Addr": end.Ip,
         "Next_hop": end.Ip,
-        "Seqnum": "2",
+        "Seqnum": targ_seqnum,
         "Metric": "1",
         "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
     }))
@@ -195,12 +196,12 @@ func test_route_creation_0_to_3() {
         "Orig_addr": beginning.Ip,
         "Orig_seqnum": "1",
         "Targ_addr": end.Ip,
-        "Targ_seqnum": "2",
+        "Targ_seqnum": targ_seqnum,
     }))
     riot_line[1].Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
         "Addr": end.Ip,
         "Next_hop": riot_line[2].Ip,
-        "Seqnum": "2",
+        "Seqnum": targ_seqnum,
         "Metric": "2",
         "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
     }))
@@ -212,17 +213,175 @@ func test_route_creation_0_to_3() {
     }))
 
     /* check node 0 (aka the beginning) */
-    riot_line[1].Channels.Expect_JSON(make_JSON_str(template_received_rrep, map[string]string{
+    beginning.Channels.Expect_JSON(make_JSON_str(template_received_rrep, map[string]string{
         "Last_hop": riot_line[1].Ip,
         "Orig_addr": beginning.Ip,
         "Orig_seqnum": "1",
         "Targ_addr": end.Ip,
-        "Targ_seqnum": "2",
+        "Targ_seqnum": targ_seqnum,
+    }))
+    beginning.Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
+        "Addr": end.Ip,
+        "Next_hop": riot_line[1].Ip,
+        "Seqnum": targ_seqnum,
+        "Metric": "3",
+        "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
+    }))
+
+    fmt.Println("\nDone.\n")
+}
+
+
+func test_route_creation_3_to_0() {
+
+    test_name := "route_creation_3_to_0"
+
+    riot_line := aodvv2_test_management.Create_clean_setup(test_name)
+
+    fmt.Println("Starting test ", test_name)
+
+    /* note: the seqnums are *sometimes* != 1 because apparently
+     * weird RREQs are sent out before the experiment, screwing up the node's seqnum
+     * and I haven't figured out why yet. So until that mystery is solved
+     * they are set to aodvv2_test_management.WILDCARD */
+    orig_seqnum := "\""+ aodvv2_test_management.WILDCARD+ "\""
+    targ_seqnum := "\""+ aodvv2_test_management.WILDCARD+ "\""
+    beginning := riot_line[3]
+    end := riot_line[0]
+
+    beginning.Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, test_string))
+
+    /* Discover route at node 3...  */
+    beginning.Channels.Expect_JSON(make_JSON_str(template_sent_rreq, map[string]string{
+        "Orig_addr": beginning.Ip,
+        "Targ_addr": end.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Metric": "0",
+    }))
+
+    /* check node 2 */
+    riot_line[2].Channels.Expect_JSON(make_JSON_str(template_received_rreq, map[string]string{
+        "Last_hop": beginning.Ip,
+        "Orig_addr": beginning.Ip,
+        "Targ_addr": end.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Metric": "0",
+    }))
+    riot_line[2].Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
+        "Addr": beginning.Ip,
+        "Next_hop": beginning.Ip,
+        "Seqnum": orig_seqnum,
+        "Metric": "1",
+        "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
+    }))
+    riot_line[2].Channels.Expect_JSON(make_JSON_str(template_sent_rreq, map[string]string{
+        "Orig_addr": beginning.Ip,
+        "Targ_addr": end.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Metric": "1",
+    }))
+
+    /* check node 1 */
+    riot_line[1].Channels.Expect_JSON(make_JSON_str(template_received_rreq, map[string]string{
+        "Last_hop": riot_line[2].Ip,
+        "Orig_addr": beginning.Ip,
+        "Targ_addr": end.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Metric": "1",
+    }))
+    riot_line[1].Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
+        "Addr": beginning.Ip,
+        "Next_hop": riot_line[2].Ip,
+        "Seqnum": orig_seqnum,
+        "Metric": "2",
+        "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
+    }))
+    riot_line[1].Channels.Expect_JSON(make_JSON_str(template_sent_rreq, map[string]string{
+        "Orig_addr": beginning.Ip,
+        "Targ_addr": end.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Metric": "2",
+    }))
+
+    /* check node 0 (aka the end) */
+    end.Channels.Expect_JSON(make_JSON_str(template_received_rreq, map[string]string{
+        "Last_hop": riot_line[1].Ip,
+        "Orig_addr": beginning.Ip,
+        "Targ_addr": end.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Metric": "2",
+    }))
+    end.Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
+        "Addr": beginning.Ip,
+        "Next_hop": riot_line[1].Ip,
+        "Seqnum": orig_seqnum,
+        "Metric": "3",
+        "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
+    }))
+    /* And send a RREP back */
+    end.Channels.Expect_JSON(make_JSON_str(template_sent_rrep, map[string]string{
+        "Next_hop": riot_line[1].Ip,
+        "Orig_addr": beginning.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Targ_addr": end.Ip,
+    }))
+
+    /* check node 1 */
+    riot_line[1].Channels.Expect_JSON(make_JSON_str(template_received_rrep, map[string]string{
+        "Last_hop": end.Ip,
+        "Orig_addr": beginning.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Targ_addr": end.Ip,
+        "Targ_seqnum": "1",
     }))
     riot_line[1].Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
         "Addr": end.Ip,
+        "Next_hop": end.Ip,
+        "Seqnum": targ_seqnum,
+        "Metric": "1",
+        "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
+    }))
+    riot_line[1].Channels.Expect_JSON(make_JSON_str(template_sent_rrep, map[string]string{
+        "Next_hop": riot_line[2].Ip,
+        "Orig_addr": beginning.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Targ_addr": end.Ip,
+    }))
+
+    /* check node 2 */
+    riot_line[2].Channels.Expect_JSON(make_JSON_str(template_received_rrep, map[string]string{
+        "Last_hop": riot_line[1].Ip,
+        "Orig_addr": beginning.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Targ_addr": end.Ip,
+        "Targ_seqnum": targ_seqnum,
+    }))
+    riot_line[2].Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
+        "Addr": end.Ip,
         "Next_hop": riot_line[1].Ip,
-        "Seqnum": "2",
+        "Seqnum": targ_seqnum,
+        "Metric": "2",
+        "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
+    }))
+    riot_line[2].Channels.Expect_JSON(make_JSON_str(template_sent_rrep, map[string]string{
+        "Next_hop": beginning.Ip,
+        "Orig_addr": beginning.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Targ_addr": end.Ip,
+    }))
+
+    /* check node 3 (aka the beginning) */
+    beginning.Channels.Expect_JSON(make_JSON_str(template_received_rrep, map[string]string{
+        "Last_hop": riot_line[2].Ip,
+        "Orig_addr": beginning.Ip,
+        "Orig_seqnum": orig_seqnum,
+        "Targ_addr": end.Ip,
+        "Targ_seqnum": targ_seqnum,
+    }))
+    beginning.Channels.Expect_JSON(make_JSON_str(template_added_rt_entry, map[string]string{
+        "Addr": end.Ip,
+        "Next_hop": riot_line[2].Ip,
+        "Seqnum": targ_seqnum,
         "Metric": "3",
         "State": strconv.Itoa(ROUTE_STATE_ACTIVE),
     }))
@@ -230,27 +389,8 @@ func test_route_creation_0_to_3() {
     fmt.Println("\nDone.")
 }
 
-
-func test_route_creation_3_to_0() {
-    /*
-    test_name := "route_creation_0_to_3"
-
-    riot_line := aodvv2_test_management.Create_clean_setup(test_name)
-
-    fmt.Println("Starting test ", test_name)
-
-    beginning := riot_line[3]
-    end := riot_line[0]
-
-    beginning.Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, test_string))
-
-
-    fmt.Println("\nDone.")
-    */
-}
-
 func start_experiments() {
-    test_route_creation_0_to_3()
+    //test_route_creation_0_to_3()
     test_route_creation_3_to_0()
 }
 
