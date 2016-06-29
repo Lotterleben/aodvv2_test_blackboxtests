@@ -18,7 +18,7 @@ func main() {
 
     riot_line := mgmt.Create_clean_setup(test_name)
 
-    fmt.Println("Starting test ", test_name)
+    fmt.Println("===============================================================\nStarting test ", test_name)
 
     /* note: the seqnums are *sometimes* != 1 because apparently
      * weird RREQs are sent out before the experiment, screwing up the node's seqnum
@@ -29,7 +29,9 @@ func main() {
     beginning := riot_line[3]
     end := riot_line[0]
 
-    beginning.Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, mgmt.Test_string))
+    /* port number (1234) doesn't matter since no one is listening at that port
+       because we don't care about anyone receiving the actual content */
+    beginning.Channels.Send(fmt.Sprintf("udp send %s 1234 %s\n", end.Ip, mgmt.Test_string))
 
     /* Discover route at node 3...  */
     beginning.Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rreq, map[string]string{
@@ -112,8 +114,9 @@ func main() {
         "Orig_addr": beginning.Ip,
         "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
-        "Targ_seqnum": "1",
+        "Targ_seqnum": targ_seqnum,
     }))
+    /*
     riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_added_rt_entry, map[string]string{
         "Addr": end.Ip,
         "Next_hop": end.Ip,
@@ -121,6 +124,7 @@ func main() {
         "Metric": "1",
         "State": strconv.Itoa(mgmt.ROUTE_STATE_ACTIVE),
     }))
+    */
     riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rrep, map[string]string{
         "Next_hop": riot_line[2].Ip,
         "Orig_addr": beginning.Ip,
@@ -136,6 +140,7 @@ func main() {
         "Targ_addr": end.Ip,
         "Targ_seqnum": targ_seqnum,
     }))
+    /*
     riot_line[2].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_added_rt_entry, map[string]string{
         "Addr": end.Ip,
         "Next_hop": riot_line[1].Ip,
@@ -143,6 +148,7 @@ func main() {
         "Metric": "2",
         "State": strconv.Itoa(mgmt.ROUTE_STATE_ACTIVE),
     }))
+    */
     riot_line[2].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rrep, map[string]string{
         "Next_hop": beginning.Ip,
         "Orig_addr": beginning.Ip,

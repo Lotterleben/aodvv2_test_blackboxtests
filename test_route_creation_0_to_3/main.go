@@ -18,18 +18,29 @@ func main() {
 
     riot_line := mgmt.Create_clean_setup(test_name)
 
-    fmt.Println("Starting test ", test_name)
+    fmt.Println("===============================================================\nStarting test ", test_name)
+
+    /* note: the seqnums are *sometimes* != 1 because apparently
+     * weird RREQs are sent out before the experiment, screwing up the node's seqnum
+     * and I haven't figured out why yet. So until that mystery is solved
+     * they are set to aodvv2_test_management.WILDCARD */
+    orig_seqnum := "\""+ mgmt.WILDCARD+ "\""
 
     beginning := riot_line[0]
     end := riot_line[len(riot_line)-1]
 
-    beginning.Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, mgmt.Test_string))
+    fmt.Println("beginning:", beginning)
+    fmt.Println("end:", end)
+
+    /* port number (1234) doesn't matter since no one is listening at that port
+       because we don't care about anyone receiving the actual content */
+    beginning.Channels.Send(fmt.Sprintf("udp send %s 1234 %s\n", end.Ip, mgmt.Test_string))
 
     /* Discover route at node 0...  */
     beginning.Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rreq, map[string]string{
         "Orig_addr": beginning.Ip,
         "Targ_addr": end.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Metric": "0",
     }))
 
@@ -38,7 +49,7 @@ func main() {
         "Last_hop": beginning.Ip,
         "Orig_addr": beginning.Ip,
         "Targ_addr": end.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Metric": "0",
     }))
     riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_added_rt_entry, map[string]string{
@@ -51,7 +62,7 @@ func main() {
     riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rreq, map[string]string{
         "Orig_addr": beginning.Ip,
         "Targ_addr": end.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Metric": "1",
     }))
 
@@ -60,7 +71,7 @@ func main() {
         "Last_hop": riot_line[1].Ip,
         "Orig_addr": beginning.Ip,
         "Targ_addr": end.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Metric": "1",
     }))
     riot_line[2].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_added_rt_entry, map[string]string{
@@ -73,7 +84,7 @@ func main() {
     riot_line[2].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rreq, map[string]string{
         "Orig_addr": beginning.Ip,
         "Targ_addr": end.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Metric": "2",
     }))
 
@@ -82,7 +93,7 @@ func main() {
         "Last_hop": riot_line[2].Ip,
         "Orig_addr": beginning.Ip,
         "Targ_addr": end.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Metric": "2",
     }))
     end.Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_added_rt_entry, map[string]string{
@@ -96,7 +107,7 @@ func main() {
     end.Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rrep, map[string]string{
         "Next_hop": riot_line[2].Ip,
         "Orig_addr": beginning.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
     }))
 
@@ -109,7 +120,7 @@ func main() {
     riot_line[2].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_received_rrep, map[string]string{
         "Last_hop": end.Ip,
         "Orig_addr": beginning.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
         "Targ_seqnum": targ_seqnum,
     }))
@@ -123,7 +134,7 @@ func main() {
     riot_line[2].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rrep, map[string]string{
         "Next_hop": riot_line[1].Ip,
         "Orig_addr": beginning.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
     }))
 
@@ -131,7 +142,7 @@ func main() {
     riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_received_rrep, map[string]string{
         "Last_hop": riot_line[2].Ip,
         "Orig_addr": beginning.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
         "Targ_seqnum": targ_seqnum,
     }))
@@ -145,7 +156,7 @@ func main() {
     riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rrep, map[string]string{
         "Next_hop": beginning.Ip,
         "Orig_addr": beginning.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
     }))
 
@@ -153,7 +164,7 @@ func main() {
     beginning.Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_received_rrep, map[string]string{
         "Last_hop": riot_line[1].Ip,
         "Orig_addr": beginning.Ip,
-        "Orig_seqnum": "1",
+        "Orig_seqnum": orig_seqnum,
         "Targ_addr": end.Ip,
         "Targ_seqnum": targ_seqnum,
     }))

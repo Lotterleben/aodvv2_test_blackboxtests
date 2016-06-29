@@ -32,8 +32,9 @@ func main() {
     beginning := riot_line[3]
     end := riot_line[0]
 
-    beginning.Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, mgmt.Test_string))
-
+    /* port number (1234) doesn't matter since no one is listening at that port
+       because we don't care about anyone receiving the actual content */
+    beginning.Channels.Send(fmt.Sprintf("udp send %s 1234 %s\n", end.Ip, mgmt.Test_string))
     /* Now a route should be discovered.....*/
 
     /* check node 3 (aka the beginning) */
